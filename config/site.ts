@@ -17,8 +17,8 @@ export const siteConfig = {
 // LINKS / CTAs — troque os valores abaixo pelas URLs reais quando existirem
 // ----------------------------------------------------------------------------
 export const links = {
-  TRIAL_URL: "#",
-  LOGIN_URL: "#",
+  TRIAL_URL: "/register",
+  LOGIN_URL: "/login",
   SALES_URL: "#",
 };
 

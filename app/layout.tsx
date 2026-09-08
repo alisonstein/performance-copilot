@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { siteConfig, analyticsConfig } from "@/config/site";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,7 +79,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={inter.variable}>
       <body className="min-h-screen bg-bg font-sans">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
 
         {/* Google Tag Manager — preencha GTM_CONTAINER_ID em config/site.ts */}
         {GTM_CONTAINER_ID ? (
