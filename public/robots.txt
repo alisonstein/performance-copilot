@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://performancecopilot.com.br/sitemap.xml
