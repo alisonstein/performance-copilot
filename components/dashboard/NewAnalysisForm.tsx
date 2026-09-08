@@ -7,8 +7,10 @@ import { Sparkles } from "lucide-react";
 import { UploadDropzone } from "@/components/dashboard/UploadDropzone";
 import { AnalysisProgress } from "@/components/dashboard/AnalysisProgress";
 import { PLATFORM_OPTIONS, MAX_CSV_FILE_SIZE_BYTES } from "@/lib/constants";
+import { PRIMARY_RESULT_OPTIONS } from "@/lib/analysis/primary-result";
 import { cn } from "@/lib/utils";
 import type { Platform } from "@/types/database";
+import type { PrimaryResultType } from "@/types/domain";
 
 interface ClientOption {
   id: string;
@@ -34,6 +36,7 @@ export function NewAnalysisForm({ clients, preselectedClientId }: NewAnalysisFor
 
   const [clientId, setClientId] = useState(preselectedClientId ?? clients[0]?.id ?? "");
   const [platform, setPlatform] = useState<Platform>("meta_ads");
+  const [primaryResultType, setPrimaryResultType] = useState<PrimaryResultType>("other");
   const [startDate, setStartDate] = useState(start);
   const [endDate, setEndDate] = useState(end);
   const [file, setFile] = useState<File | null>(null);
@@ -95,6 +98,7 @@ export function NewAnalysisForm({ clients, preselectedClientId }: NewAnalysisFor
       const formData = new FormData();
       formData.set("clientId", clientId);
       formData.set("platform", platform);
+      formData.set("primaryResultType", primaryResultType);
       formData.set("startDate", startDate);
       formData.set("endDate", endDate);
       formData.set("file", file);
@@ -176,6 +180,27 @@ export function NewAnalysisForm({ clients, preselectedClientId }: NewAnalysisFor
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <label htmlFor="primaryResultType" className="text-sm font-medium text-ink-secondary">
+            Resultado principal
+          </label>
+          <select
+            id="primaryResultType"
+            value={primaryResultType}
+            onChange={(event) => setPrimaryResultType(event.target.value as PrimaryResultType)}
+            className="w-full rounded-xl border border-border bg-white/[0.03] px-4 py-3 text-[15px] text-ink focus:border-primary-light focus:outline-none focus:ring-1 focus:ring-primary-light"
+          >
+            {PRIMARY_RESULT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-ink-secondary">
+            O que você está otimizando nesta campanha — define o KPI de destaque e o foco da análise.
+          </p>
         </div>
 
         <div className="flex flex-col gap-1.5">

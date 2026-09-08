@@ -119,4 +119,59 @@ describe("normalizeCsvRows", () => {
     expect(result.skippedRows).toBe(1);
     expect(result.warnings.some((w) => w.includes("ignoradas"))).toBe(true);
   });
+
+  it("reconhece alcance, conversas iniciadas, leads, compras e LPV quando presentes", () => {
+    const result = normalizeCsvRows([
+      {
+        "Campaign name": "Campanha WhatsApp",
+        "Amount spent": "500",
+        Reach: "20000",
+        Impressions: "40000",
+        "Messaging conversations started": "35",
+        Leads: "8",
+        Purchases: "3",
+        "Landing page views": "1200",
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const row = result.rows[0];
+    expect(row.reach).toBe(20000);
+    expect(row.conversationsStarted).toBe(35);
+    expect(row.leads).toBe(8);
+    expect(row.purchases).toBe(3);
+    expect(row.landingPageViews).toBe(1200);
+  });
+
+  it("usa null (não 0) para métricas estendidas quando a coluna não existe", () => {
+    const result = normalizeCsvRows([{ "Campaign name": "Campanha simples", "Amount spent": "100" }]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.rows[0].reach).toBeNull();
+    expect(result.rows[0].conversationsStarted).toBeNull();
+    expect(result.rows[0].leads).toBeNull();
+  });
+
+  it("reconhece colunas de criativo (Ad ID, Creative ID, Thumbnail URL) e status", () => {
+    const result = normalizeCsvRows([
+      {
+        "Campaign name": "Campanha",
+        "Ad name": "Video 03",
+        "Amount spent": "100",
+        "Ad ID": "123456",
+        "Creative ID": "987654",
+        "Thumbnail URL": "https://example.com/thumb.jpg",
+        "Ad set delivery": "active",
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const row = result.rows[0];
+    expect(row.adId).toBe("123456");
+    expect(row.creativeId).toBe("987654");
+    expect(row.thumbnailUrl).toBe("https://example.com/thumb.jpg");
+    expect(row.status).toBe("active");
+  });
 });

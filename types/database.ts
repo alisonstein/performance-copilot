@@ -5,6 +5,8 @@
 //   npx supabase gen types typescript --project-id <seu-projeto> > types/database.ts
 // ============================================================================
 
+import type { CampaignStatus, CreativeType, PrimaryResultType } from "@/types/domain";
+
 export type Plan = "free" | "pro" | "agency";
 export type Platform = "meta_ads" | "google_ads";
 export type AnalysisStatus = "processing" | "completed" | "failed";
@@ -83,6 +85,21 @@ export interface Database {
           cpa: number;
           revenue: number;
           roas: number;
+          primary_result_type: PrimaryResultType;
+          reach: number | null;
+          frequency: number | null;
+          link_clicks: number | null;
+          landing_page_views: number | null;
+          conversations_started: number | null;
+          cost_per_conversation: number | null;
+          leads: number | null;
+          cost_per_lead: number | null;
+          purchases: number | null;
+          cost_per_purchase: number | null;
+          registrations: number | null;
+          checkouts: number | null;
+          add_to_cart: number | null;
+          contacts: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -105,6 +122,21 @@ export interface Database {
           cpa?: number;
           revenue?: number;
           roas?: number;
+          primary_result_type?: PrimaryResultType;
+          reach?: number | null;
+          frequency?: number | null;
+          link_clicks?: number | null;
+          landing_page_views?: number | null;
+          conversations_started?: number | null;
+          cost_per_conversation?: number | null;
+          leads?: number | null;
+          cost_per_lead?: number | null;
+          purchases?: number | null;
+          cost_per_purchase?: number | null;
+          registrations?: number | null;
+          checkouts?: number | null;
+          add_to_cart?: number | null;
+          contacts?: number | null;
         };
         Update: {
           status?: AnalysisStatus;
@@ -118,6 +150,21 @@ export interface Database {
           cpa?: number;
           revenue?: number;
           roas?: number;
+          primary_result_type?: PrimaryResultType;
+          reach?: number | null;
+          frequency?: number | null;
+          link_clicks?: number | null;
+          landing_page_views?: number | null;
+          conversations_started?: number | null;
+          cost_per_conversation?: number | null;
+          leads?: number | null;
+          cost_per_lead?: number | null;
+          purchases?: number | null;
+          cost_per_purchase?: number | null;
+          registrations?: number | null;
+          checkouts?: number | null;
+          add_to_cart?: number | null;
+          contacts?: number | null;
         };
         Relationships: [
           {
@@ -146,6 +193,25 @@ export interface Database {
           cpa: number;
           revenue: number;
           roas: number;
+          reach: number | null;
+          frequency: number | null;
+          link_clicks: number | null;
+          landing_page_views: number | null;
+          conversations_started: number | null;
+          cost_per_conversation: number | null;
+          leads: number | null;
+          cost_per_lead: number | null;
+          purchases: number | null;
+          cost_per_purchase: number | null;
+          registrations: number | null;
+          checkouts: number | null;
+          add_to_cart: number | null;
+          contacts: number | null;
+          status: CampaignStatus | null;
+          ad_id: string | null;
+          creative_id: string | null;
+          thumbnail_url: string | null;
+          creative_type: CreativeType | null;
           raw_data: Record<string, unknown> | null;
           created_at: string;
         };
@@ -165,6 +231,25 @@ export interface Database {
           cpa?: number;
           revenue?: number;
           roas?: number;
+          reach?: number | null;
+          frequency?: number | null;
+          link_clicks?: number | null;
+          landing_page_views?: number | null;
+          conversations_started?: number | null;
+          cost_per_conversation?: number | null;
+          leads?: number | null;
+          cost_per_lead?: number | null;
+          purchases?: number | null;
+          cost_per_purchase?: number | null;
+          registrations?: number | null;
+          checkouts?: number | null;
+          add_to_cart?: number | null;
+          contacts?: number | null;
+          status?: CampaignStatus | null;
+          ad_id?: string | null;
+          creative_id?: string | null;
+          thumbnail_url?: string | null;
+          creative_type?: CreativeType | null;
           raw_data?: Record<string, unknown> | null;
         };
         Update: {

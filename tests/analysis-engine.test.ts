@@ -110,4 +110,66 @@ describe("runAnalysisEngine", () => {
     const result = runAnalysisEngine(uniformRows);
     expect(result.alerts.some((a) => a.title === "CPA acima da média")).toBe(false);
   });
+
+  it("gera alerta de frequência alta quando frequência > 4", () => {
+    const rows: NormalizedCampaignRow[] = [
+      {
+        campaignName: "Campanha saturada",
+        adsetName: null,
+        adName: null,
+        spend: 400,
+        impressions: 50000,
+        clicks: 600,
+        conversions: 10,
+        revenue: 500,
+        reach: 10000, // frequência = 50000 / 10000 = 5
+      },
+    ];
+    const result = runAnalysisEngine(rows);
+    expect(result.alerts.some((a) => a.title === "Frequência alta")).toBe(true);
+  });
+
+  it("não gera alerta de frequência quando o alcance não está disponível", () => {
+    const result = runAnalysisEngine(baseRows);
+    expect(result.alerts.some((a) => a.title === "Frequência alta")).toBe(false);
+  });
+
+  it("gera alerta de CPM acima da média quando uma campanha tem CPM bem maior que as demais", () => {
+    const rows: NormalizedCampaignRow[] = [
+      {
+        campaignName: "CPM alto",
+        adsetName: null,
+        adName: null,
+        spend: 900,
+        impressions: 10000, // CPM = 90
+        clicks: 100,
+        conversions: 5,
+        revenue: 200,
+      },
+      {
+        campaignName: "CPM normal 1",
+        adsetName: null,
+        adName: null,
+        spend: 100,
+        impressions: 10000, // CPM = 10
+        clicks: 100,
+        conversions: 5,
+        revenue: 200,
+      },
+      {
+        campaignName: "CPM normal 2",
+        adsetName: null,
+        adName: null,
+        spend: 100,
+        impressions: 10000, // CPM = 10
+        clicks: 100,
+        conversions: 5,
+        revenue: 200,
+      },
+    ];
+    const result = runAnalysisEngine(rows);
+    const alert = result.alerts.find((a) => a.title === "CPM acima da média");
+    expect(alert).toBeDefined();
+    expect(alert?.description).toContain("CPM alto");
+  });
 });

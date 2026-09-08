@@ -25,7 +25,9 @@ import type {
 const CPA_ABOVE_AVERAGE_THRESHOLD = 1.4; // 40% acima da média
 const CPA_BELOW_AVERAGE_THRESHOLD = 0.7; // 30% abaixo da média
 const CPC_ABOVE_AVERAGE_THRESHOLD = 1.4;
+const CPM_ABOVE_AVERAGE_THRESHOLD = 1.4; // 40% acima da média da conta
 const LOW_CTR_THRESHOLD = 1; // %
+const HIGH_FREQUENCY_THRESHOLD = 4;
 const MAX_ITEMS_PER_CATEGORY = 8;
 
 const SEVERITY_RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 };
@@ -101,6 +103,29 @@ export function runAnalysisEngine(rows: NormalizedCampaignRow[]): AnalysisEngine
         )}, acima da média do período (${formatRoas(
           totals.roas
         )}). Há sinal de bom retorno sobre o investimento nessa campanha.`,
+      });
+    }
+
+    if (campaign.frequency !== null && campaign.frequency > HIGH_FREQUENCY_THRESHOLD) {
+      alerts.push({
+        title: "Frequência alta",
+        severity: "medium",
+        description: `"${campaign.campaignName}" está com frequência de ${campaign.frequency.toLocaleString(
+          "pt-BR",
+          { maximumFractionDigits: 1 }
+        )}. Há sinal de possível saturação de audiência — vale investigar a renovação de criativos.`,
+      });
+    }
+
+    if (totals.cpm > 0 && campaign.impressions > 0 && campaign.cpm > totals.cpm * CPM_ABOVE_AVERAGE_THRESHOLD) {
+      alerts.push({
+        title: "CPM acima da média",
+        severity: "low",
+        description: `"${campaign.campaignName}" tem CPM de ${formatBRL(
+          campaign.cpm
+        )}, acima da média da conta (${formatBRL(
+          totals.cpm
+        )}). Pode ser interessante avaliar a segmentação de público dessa campanha.`,
       });
     }
   }

@@ -1,10 +1,18 @@
 import "server-only";
 import { runAnalysisEngine } from "@/lib/analysis/analysis-engine";
 import { formatBRL, formatNumber, formatPercent, formatRoas } from "@/lib/analysis/metrics";
+import { getPrimaryResultCost, getPrimaryResultCount, PRIMARY_RESULT_NOUN } from "@/lib/analysis/primary-result";
 import { OpenAiProvider } from "@/lib/ai/openai-provider";
 import type { AiCampaignSummary, AiProvider } from "@/lib/ai/provider";
 import type { Platform } from "@/types/database";
-import type { AiAnalysisResult, AnalysisEngineResult, NormalizedCampaignRow, RecommendationItem } from "@/types/domain";
+import type {
+  AiAnalysisResult,
+  AnalysisEngineResult,
+  CampaignMetrics,
+  NormalizedCampaignRow,
+  PrimaryResultType,
+  RecommendationItem,
+} from "@/types/domain";
 
 const MAX_CAMPAIGNS_SENT_TO_AI = 30;
 
@@ -12,18 +20,45 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function buildCampaignSummaries(engineResult: AnalysisEngineResult): AiCampaignSummary[] {
+function roundNullable(value: number | null): number | null {
+  return value === null ? null : round2(value);
+}
+
+function buildCampaignSummaries(
+  engineResult: AnalysisEngineResult,
+  primaryResultType: PrimaryResultType
+): AiCampaignSummary[] {
   return [...engineResult.campaigns]
     .sort((a, b) => b.spend - a.spend)
     .slice(0, MAX_CAMPAIGNS_SENT_TO_AI)
     .map((c) => ({
       campaignName: c.campaignName,
+      adName: c.adName,
       spend: round2(c.spend),
       ctr: round2(c.ctr),
       cpa: round2(c.cpa),
       roas: round2(c.roas),
       conversions: round2(c.conversions),
+      frequency: roundNullable(c.frequency),
+      primaryResultCount: getPrimaryResultCount(c, primaryResultType),
+      primaryResultCost: roundNullable(getPrimaryResultCost(c, primaryResultType)),
     }));
+}
+
+function pickTopCreative(campaigns: CampaignMetrics[], primaryResultType: PrimaryResultType): CampaignMetrics | null {
+  const withResults = campaigns.filter((c) => (getPrimaryResultCount(c, primaryResultType) ?? 0) > 0);
+  if (withResults.length === 0) return null;
+  return [...withResults].sort((a, b) => {
+    const costA = getPrimaryResultCost(a, primaryResultType) ?? Number.POSITIVE_INFINITY;
+    const costB = getPrimaryResultCost(b, primaryResultType) ?? Number.POSITIVE_INFINITY;
+    return costA - costB;
+  })[0];
+}
+
+function pickWorstCreative(campaigns: CampaignMetrics[]): CampaignMetrics | null {
+  const withSpend = campaigns.filter((c) => c.spend > 0 && c.conversions === 0);
+  if (withSpend.length === 0) return null;
+  return [...withSpend].sort((a, b) => b.spend - a.spend)[0];
 }
 
 /**
@@ -32,14 +67,21 @@ function buildCampaignSummaries(engineResult: AnalysisEngineResult): AiCampaignS
  * quando a chamada à IA falha por qualquer motivo. O sistema nunca deve
  * quebrar por causa de uma indisponibilidade externa.
  */
-function ruleBasedFallback(engineResult: AnalysisEngineResult, clientName: string): AiAnalysisResult {
-  const { totals, alerts, opportunities } = engineResult;
+function ruleBasedFallback(
+  engineResult: AnalysisEngineResult,
+  clientName: string,
+  primaryResultType: PrimaryResultType
+): AiAnalysisResult {
+  const { totals, alerts, opportunities, campaigns } = engineResult;
+  const noun = PRIMARY_RESULT_NOUN[primaryResultType];
+  const resultCount = getPrimaryResultCount(totals, primaryResultType) ?? totals.conversions;
+  const resultCost = getPrimaryResultCost(totals, primaryResultType);
 
-  const executiveSummary = `No período analisado, ${clientName} investiu ${formatBRL(
-    totals.spend
-  )} e gerou ${formatNumber(totals.conversions)} conversões, com custo médio de ${formatBRL(
-    totals.cpa
-  )} por resultado. O CTR médio foi de ${formatPercent(totals.ctr)} e o ROAS de ${formatRoas(totals.roas)}.`;
+  const executiveSummary = `No período analisado, ${clientName} ${
+    totals.reach !== null ? `alcançou ${formatNumber(totals.reach)} pessoas e ` : ""
+  }gerou ${formatNumber(resultCount)} ${noun.plural}${
+    resultCost !== null ? `, com custo médio de ${formatBRL(resultCost)} por ${noun.singular}` : ""
+  }. O CTR médio foi de ${formatPercent(totals.ctr)} e o ROAS de ${formatRoas(totals.roas)}.`;
 
   const diagnosisParts: string[] = [
     `O período somou ${formatBRL(totals.spend)} de investimento, ${formatNumber(
@@ -48,6 +90,25 @@ function ruleBasedFallback(engineResult: AnalysisEngineResult, clientName: strin
       totals.ctr
     )} e CPC médio de ${formatBRL(totals.cpc)}.`,
   ];
+
+  const topCreative = pickTopCreative(campaigns, primaryResultType);
+  const worstCreative = pickWorstCreative(campaigns);
+
+  if (topCreative) {
+    const label = topCreative.adName ? `"${topCreative.adName}"` : `"${topCreative.campaignName}"`;
+    diagnosisParts.push(
+      `O criativo ${label} concentra o melhor custo por ${noun.singular} da conta, com CTR de ${formatPercent(
+        topCreative.ctr
+      )}.`
+    );
+  }
+
+  if (worstCreative) {
+    const label = worstCreative.adName ? `"${worstCreative.adName}"` : `"${worstCreative.campaignName}"`;
+    diagnosisParts.push(
+      `O criativo ${label} já consumiu ${formatBRL(worstCreative.spend)} sem gerar ${noun.plural} — vale revisar mensagem, oferta ou continuidade.`
+    );
+  }
 
   if (alerts.length > 0) {
     diagnosisParts.push(
@@ -100,6 +161,7 @@ export interface GenerateAnalysisParams {
   platform: Platform;
   startDate: string;
   endDate: string;
+  primaryResultType: PrimaryResultType;
   rows: NormalizedCampaignRow[];
 }
 
@@ -123,7 +185,10 @@ export async function generateAiAnalysis(params: GenerateAnalysisParams): Promis
     if (process.env.NODE_ENV !== "production") {
       console.info("[ai-service] OPENAI_API_KEY não configurada. Usando análise local baseada em regras.");
     }
-    return { aiResult: ruleBasedFallback(engineResult, params.clientName), engineResult };
+    return {
+      aiResult: ruleBasedFallback(engineResult, params.clientName, params.primaryResultType),
+      engineResult,
+    };
   }
 
   try {
@@ -133,8 +198,9 @@ export async function generateAiAnalysis(params: GenerateAnalysisParams): Promis
       platform: params.platform,
       startDate: params.startDate,
       endDate: params.endDate,
+      primaryResultType: params.primaryResultType,
       totals: engineResult.totals,
-      campaignSummaries: buildCampaignSummaries(engineResult),
+      campaignSummaries: buildCampaignSummaries(engineResult, params.primaryResultType),
       ruleBasedAlerts: engineResult.alerts,
       ruleBasedOpportunities: engineResult.opportunities,
     });
@@ -145,6 +211,9 @@ export async function generateAiAnalysis(params: GenerateAnalysisParams): Promis
     };
   } catch (error) {
     console.error("[ai-service] Falha ao gerar análise com IA — usando fallback local.", error);
-    return { aiResult: ruleBasedFallback(engineResult, params.clientName), engineResult };
+    return {
+      aiResult: ruleBasedFallback(engineResult, params.clientName, params.primaryResultType),
+      engineResult,
+    };
   }
 }

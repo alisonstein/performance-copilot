@@ -6,11 +6,11 @@ import {
   DEMO_END_DATE,
   DEMO_FILE_NAME,
   DEMO_PLATFORM,
+  DEMO_PRIMARY_RESULT_TYPE,
   DEMO_START_DATE,
   getDemoAiResult,
   getDemoEngineResult,
 } from "@/lib/demo/demo-data";
-import { rankCampaigns } from "@/lib/analysis/analysis-engine";
 
 export const metadata: Metadata = {
   title: "Demonstração",
@@ -23,8 +23,6 @@ export default async function DemoAnalysisPage() {
 
   const engineResult = getDemoEngineResult();
   const aiResult = getDemoAiResult();
-  const bestCampaigns = rankCampaigns(engineResult.campaigns, "best");
-  const attentionCampaigns = rankCampaigns(engineResult.campaigns, "attention", engineResult.totals.cpa);
 
   return (
     <AnalysisResultView
@@ -33,10 +31,9 @@ export default async function DemoAnalysisPage() {
       startDate={DEMO_START_DATE}
       endDate={DEMO_END_DATE}
       fileName={DEMO_FILE_NAME}
+      primaryResultType={DEMO_PRIMARY_RESULT_TYPE}
       totals={engineResult.totals}
       campaigns={engineResult.campaigns}
-      bestCampaigns={bestCampaigns}
-      attentionCampaigns={attentionCampaigns}
       aiResult={aiResult}
       isDemo
     />

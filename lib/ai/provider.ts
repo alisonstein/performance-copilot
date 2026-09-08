@@ -6,16 +6,20 @@
 // ============================================================================
 
 import type { Platform } from "@/types/database";
-import type { AlertItem, MetricsTotals, OpportunityItem } from "@/types/domain";
+import type { AlertItem, MetricsTotals, OpportunityItem, PrimaryResultType } from "@/types/domain";
 import type { AiAnalysisContentParsed } from "@/lib/ai/types";
 
 export interface AiCampaignSummary {
   campaignName: string;
+  adName: string | null;
   spend: number;
   ctr: number;
   cpa: number;
   roas: number;
   conversions: number;
+  frequency: number | null;
+  primaryResultCount: number | null;
+  primaryResultCost: number | null;
 }
 
 export interface AiAnalysisRequest {
@@ -23,6 +27,7 @@ export interface AiAnalysisRequest {
   platform: Platform;
   startDate: string;
   endDate: string;
+  primaryResultType: PrimaryResultType;
   totals: MetricsTotals;
   campaignSummaries: AiCampaignSummary[];
   ruleBasedAlerts: AlertItem[];

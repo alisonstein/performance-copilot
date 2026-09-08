@@ -12,17 +12,28 @@
 //   essenciais, em vez de lançar exceções genéricas.
 // ============================================================================
 
-import type { NormalizedCampaignRow } from "@/types/domain";
+import type { CampaignStatus, NormalizedCampaignRow } from "@/types/domain";
 
-type FieldKey =
-  | "campaignName"
-  | "adsetName"
-  | "adName"
+type NumericFieldKey =
   | "spend"
   | "impressions"
   | "clicks"
   | "conversions"
-  | "revenue";
+  | "revenue"
+  | "reach"
+  | "linkClicks"
+  | "landingPageViews"
+  | "conversationsStarted"
+  | "leads"
+  | "purchases"
+  | "registrations"
+  | "checkouts"
+  | "addToCart"
+  | "contacts";
+
+type TextFieldKey = "campaignName" | "adsetName" | "adName" | "status" | "adId" | "creativeId" | "thumbnailUrl";
+
+type FieldKey = NumericFieldKey | TextFieldKey;
 
 // Aliases já normalizados (minúsculas, sem acento, sem pontuação).
 const HEADER_ALIASES: Record<FieldKey, string[]> = {
@@ -54,13 +65,7 @@ const HEADER_ALIASES: Record<FieldKey, string[]> = {
     "investimento",
   ],
   impressions: ["impressions", "impressoes"],
-  clicks: [
-    "clicks",
-    "link clicks",
-    "cliques",
-    "cliques no link",
-    "cliques no ligacao",
-  ],
+  clicks: ["clicks", "cliques", "link clicks", "cliques no link"],
   conversions: [
     "results",
     "resultados",
@@ -79,7 +84,65 @@ const HEADER_ALIASES: Record<FieldKey, string[]> = {
     "receita",
     "revenue",
   ],
+
+  // -------------------------------------------------------------------
+  // Métricas estendidas (Meta Ads)
+  // -------------------------------------------------------------------
+  reach: ["reach", "alcance"],
+  linkClicks: ["link clicks", "cliques no link"],
+  landingPageViews: [
+    "landing page views",
+    "visualizacoes da pagina de destino",
+    "lpv",
+  ],
+  conversationsStarted: [
+    "messaging conversations started",
+    "conversas iniciadas por mensagem",
+    "conversas iniciadas",
+    "new messaging connections",
+  ],
+  leads: ["leads", "cadastros de leads"],
+  purchases: ["purchases", "compras"],
+  registrations: [
+    "complete registration",
+    "complete registrations",
+    "cadastros completos",
+    "cadastros",
+    "registros",
+  ],
+  checkouts: [
+    "initiate checkout",
+    "checkouts iniciados",
+    "finalizacoes de compra iniciadas",
+    "checkout iniciado",
+  ],
+  addToCart: ["add to cart", "adicoes ao carrinho", "adicionar ao carrinho"],
+  contacts: ["contact", "contatos"],
+  status: [
+    "ad set delivery",
+    "campaign delivery",
+    "ad delivery",
+    "delivery",
+    "status",
+    "status da campanha",
+    "status do conjunto",
+    "status do anuncio",
+    "entrega",
+  ],
+  adId: ["ad id", "id do anuncio"],
+  creativeId: ["creative id", "id do criativo"],
+  thumbnailUrl: ["thumbnail url", "url da miniatura", "image url", "url da imagem"],
 };
+
+const ACTIVE_STATUS_VALUES = new Set(["active", "ativo", "ativa", "em veiculacao", "veiculando"]);
+const PAUSED_STATUS_VALUES = new Set(["paused", "pausado", "pausada", "inactive", "inativo", "inativa"]);
+
+function normalizeStatusValue(raw: string): CampaignStatus {
+  const normalized = normalizeHeader(raw);
+  if (ACTIVE_STATUS_VALUES.has(normalized)) return "active";
+  if (PAUSED_STATUS_VALUES.has(normalized)) return "paused";
+  return "other";
+}
 
 const COMBINING_DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -245,6 +308,21 @@ export function normalizeCsvRows(
     const adsetNameRaw = headerMap.adsetName ? String(raw[headerMap.adsetName] ?? "").trim() : "";
     const adNameRaw = headerMap.adName ? String(raw[headerMap.adName] ?? "").trim() : "";
 
+    const readText = (key: TextFieldKey): string | null => {
+      const header = headerMap[key];
+      if (!header) return null;
+      const value = String(raw[header] ?? "").trim();
+      return value || null;
+    };
+
+    const readOptionalNumber = (key: NumericFieldKey): number | null => {
+      const header = headerMap[key];
+      if (!header) return null;
+      return parseLocaleNumber(raw[header]);
+    };
+
+    const statusRaw = readText("status");
+
     rows.push({
       campaignName,
       adsetName: adsetNameRaw || null,
@@ -256,6 +334,23 @@ export function normalizeCsvRows(
       clicks: headerMap.clicks ? Math.round(parseLocaleNumber(raw[headerMap.clicks])) : 0,
       conversions: headerMap.conversions ? parseLocaleNumber(raw[headerMap.conversions]) : 0,
       revenue: headerMap.revenue ? parseLocaleNumber(raw[headerMap.revenue]) : 0,
+
+      reach: readOptionalNumber("reach"),
+      linkClicks: readOptionalNumber("linkClicks"),
+      landingPageViews: readOptionalNumber("landingPageViews"),
+      conversationsStarted: readOptionalNumber("conversationsStarted"),
+      leads: readOptionalNumber("leads"),
+      purchases: readOptionalNumber("purchases"),
+      registrations: readOptionalNumber("registrations"),
+      checkouts: readOptionalNumber("checkouts"),
+      addToCart: readOptionalNumber("addToCart"),
+      contacts: readOptionalNumber("contacts"),
+
+      status: statusRaw ? normalizeStatusValue(statusRaw) : null,
+      adId: readText("adId"),
+      creativeId: readText("creativeId"),
+      thumbnailUrl: readText("thumbnailUrl"),
+      creativeType: null,
     });
   }
 

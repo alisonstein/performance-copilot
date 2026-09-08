@@ -14,6 +14,9 @@ const metadataSchema = z
     platform: z.enum(["meta_ads", "google_ads"], { message: "Selecione uma plataforma válida." }),
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inicial inválida."),
     endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data final inválida."),
+    primaryResultType: z
+      .enum(["conversations", "leads", "purchases", "registrations", "landing_page_views", "other"])
+      .default("other"),
   })
   .refine((data) => data.startDate <= data.endDate, {
     message: "A data inicial não pode ser depois da data final.",
@@ -67,6 +70,7 @@ export async function POST(request: Request) {
     platform: formData.get("platform"),
     startDate: formData.get("startDate"),
     endDate: formData.get("endDate"),
+    primaryResultType: formData.get("primaryResultType") || undefined,
   });
 
   if (!parsedMetadata.success) {
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { clientId, platform, startDate, endDate } = parsedMetadata.data;
+  const { clientId, platform, startDate, endDate, primaryResultType } = parsedMetadata.data;
 
   const { data: client, error: clientError } = await supabase
     .from("clients")
@@ -116,6 +120,7 @@ export async function POST(request: Request) {
       platform,
       startDate,
       endDate,
+      primaryResultType,
       rows: normalized.rows,
     });
     aiResult = generated.aiResult;
@@ -150,6 +155,21 @@ export async function POST(request: Request) {
       cpa: totals.cpa,
       revenue: totals.revenue,
       roas: totals.roas,
+      primary_result_type: primaryResultType,
+      reach: totals.reach,
+      frequency: totals.frequency,
+      link_clicks: totals.linkClicks,
+      landing_page_views: totals.landingPageViews,
+      conversations_started: totals.conversationsStarted,
+      cost_per_conversation: totals.costPerConversation,
+      leads: totals.leads,
+      cost_per_lead: totals.costPerLead,
+      purchases: totals.purchases,
+      cost_per_purchase: totals.costPerPurchase,
+      registrations: totals.registrations,
+      checkouts: totals.checkouts,
+      add_to_cart: totals.addToCart,
+      contacts: totals.contacts,
     })
     .select("id")
     .single();
@@ -176,6 +196,25 @@ export async function POST(request: Request) {
     cpa: campaign.cpa,
     revenue: campaign.revenue,
     roas: campaign.roas,
+    reach: campaign.reach,
+    frequency: campaign.frequency,
+    link_clicks: campaign.linkClicks,
+    landing_page_views: campaign.landingPageViews,
+    conversations_started: campaign.conversationsStarted,
+    cost_per_conversation: campaign.costPerConversation,
+    leads: campaign.leads,
+    cost_per_lead: campaign.costPerLead,
+    purchases: campaign.purchases,
+    cost_per_purchase: campaign.costPerPurchase,
+    registrations: campaign.registrations,
+    checkouts: campaign.checkouts,
+    add_to_cart: campaign.addToCart,
+    contacts: campaign.contacts,
+    status: campaign.status,
+    ad_id: campaign.adId,
+    creative_id: campaign.creativeId,
+    thumbnail_url: campaign.thumbnailUrl,
+    creative_type: campaign.creativeType,
     raw_data: campaign as unknown as Record<string, unknown>,
   }));
 

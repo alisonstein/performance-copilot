@@ -32,8 +32,50 @@ export function calculateRoas(revenue: number, spend: number): number {
   return safeDivide(revenue, spend);
 }
 
+/**
+ * Divisão segura para métricas opcionais: retorna `null` (não `0`) quando o
+ * dado de origem não existe ou o denominador é inválido — para nunca exibir
+ * "0" quando na verdade é "a métrica não existe nesta análise".
+ */
+export function safeDivideNullable(
+  numerator: number,
+  denominator: number | null,
+  multiplier = 1
+): number | null {
+  if (denominator === null || !denominator || !Number.isFinite(denominator)) return null;
+  const result = (numerator / denominator) * multiplier;
+  return Number.isFinite(result) ? result : null;
+}
+
+/** Frequência = impressões / alcance. `null` quando o alcance não é conhecido. */
+export function calculateFrequency(impressions: number, reach: number | null): number | null {
+  return safeDivideNullable(impressions, reach);
+}
+
+/** Custo por resultado genérico (conversa, lead, compra...). `null` quando a contagem não é conhecida. */
+export function calculateCostPerResult(spend: number, count: number | null): number | null {
+  return safeDivideNullable(spend, count);
+}
+
+/** Soma valores opcionais: `null` só quando NENHUMA linha tem o dado (métrica ausente na fonte). */
+export function sumNullable(values: Array<number | null>): number | null {
+  if (values.every((value) => value === null)) return null;
+  return values.reduce((acc: number, value) => acc + (value ?? 0), 0);
+}
+
 /** Recalcula CTR, CPC, CPM, CPA e ROAS de uma linha a partir dos valores brutos. */
 export function computeCampaignMetrics(row: NormalizedCampaignRow): CampaignMetrics {
+  const reach = row.reach ?? null;
+  const linkClicks = row.linkClicks ?? null;
+  const landingPageViews = row.landingPageViews ?? null;
+  const conversationsStarted = row.conversationsStarted ?? null;
+  const leads = row.leads ?? null;
+  const purchases = row.purchases ?? null;
+  const registrations = row.registrations ?? null;
+  const checkouts = row.checkouts ?? null;
+  const addToCart = row.addToCart ?? null;
+  const contacts = row.contacts ?? null;
+
   return {
     ...row,
     ctr: calculateCtr(row.clicks, row.impressions),
@@ -41,6 +83,27 @@ export function computeCampaignMetrics(row: NormalizedCampaignRow): CampaignMetr
     cpm: calculateCpm(row.spend, row.impressions),
     cpa: calculateCpa(row.spend, row.conversions),
     roas: calculateRoas(row.revenue, row.spend),
+
+    reach,
+    linkClicks,
+    landingPageViews,
+    conversationsStarted,
+    leads,
+    purchases,
+    registrations,
+    checkouts,
+    addToCart,
+    contacts,
+    status: row.status ?? null,
+    adId: row.adId ?? null,
+    creativeId: row.creativeId ?? null,
+    thumbnailUrl: row.thumbnailUrl ?? null,
+    creativeType: row.creativeType ?? null,
+
+    frequency: calculateFrequency(row.impressions, reach),
+    costPerConversation: calculateCostPerResult(row.spend, conversationsStarted),
+    costPerLead: calculateCostPerResult(row.spend, leads),
+    costPerPurchase: calculateCostPerResult(row.spend, purchases),
   };
 }
 
@@ -61,6 +124,17 @@ export function aggregateTotals(rows: NormalizedCampaignRow[]): MetricsTotals {
     { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 }
   );
 
+  const reach = sumNullable(rows.map((r) => r.reach ?? null));
+  const linkClicks = sumNullable(rows.map((r) => r.linkClicks ?? null));
+  const landingPageViews = sumNullable(rows.map((r) => r.landingPageViews ?? null));
+  const conversationsStarted = sumNullable(rows.map((r) => r.conversationsStarted ?? null));
+  const leads = sumNullable(rows.map((r) => r.leads ?? null));
+  const purchases = sumNullable(rows.map((r) => r.purchases ?? null));
+  const registrations = sumNullable(rows.map((r) => r.registrations ?? null));
+  const checkouts = sumNullable(rows.map((r) => r.checkouts ?? null));
+  const addToCart = sumNullable(rows.map((r) => r.addToCart ?? null));
+  const contacts = sumNullable(rows.map((r) => r.contacts ?? null));
+
   return {
     ...base,
     ctr: calculateCtr(base.clicks, base.impressions),
@@ -68,6 +142,21 @@ export function aggregateTotals(rows: NormalizedCampaignRow[]): MetricsTotals {
     cpm: calculateCpm(base.spend, base.impressions),
     cpa: calculateCpa(base.spend, base.conversions),
     roas: calculateRoas(base.revenue, base.spend),
+
+    reach,
+    frequency: calculateFrequency(base.impressions, reach),
+    linkClicks,
+    landingPageViews,
+    conversationsStarted,
+    costPerConversation: calculateCostPerResult(base.spend, conversationsStarted),
+    leads,
+    costPerLead: calculateCostPerResult(base.spend, leads),
+    purchases,
+    costPerPurchase: calculateCostPerResult(base.spend, purchases),
+    registrations,
+    checkouts,
+    addToCart,
+    contacts,
   };
 }
 
@@ -104,4 +193,23 @@ export function formatChangePct(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return "—";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+
+// ----------------------------------------------------------------------------
+// Formatação "nula-segura" para as métricas estendidas: quando o dado não
+// existe na fonte (CSV sem a coluna, API sem o campo), mostramos "—", nunca
+// "0" — 0 significa "existe e é zero", que é uma informação diferente.
+// ----------------------------------------------------------------------------
+
+export function formatNumberOrDash(value: number | null): string {
+  return value === null ? "—" : formatNumber(value);
+}
+
+export function formatBRLOrDash(value: number | null): string {
+  return value === null ? "—" : formatBRL(value);
+}
+
+export function formatFrequency(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 }

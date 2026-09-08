@@ -42,6 +42,7 @@ describe("generateAiAnalysis (sem OPENAI_API_KEY)", () => {
       platform: "meta_ads",
       startDate: "2026-01-01",
       endDate: "2026-01-31",
+      primaryResultType: "other",
       rows,
     });
 
@@ -58,6 +59,7 @@ describe("generateAiAnalysis (sem OPENAI_API_KEY)", () => {
       platform: "meta_ads",
       startDate: "2026-01-01",
       endDate: "2026-01-31",
+      primaryResultType: "other",
       rows,
     });
 
