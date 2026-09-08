@@ -43,7 +43,7 @@ export const plans: Plan[] = [
     id: "freelancer",
     name: "Freelancer",
     tagline: "Para quem está começando.",
-    monthlyPrice: 59,
+    monthlyPrice: 49,
     features: [
       "Até 5 clientes",
       "Análises automáticas",

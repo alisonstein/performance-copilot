@@ -34,7 +34,7 @@ export function StickyMobileCTA() {
           trackEvent("click_cta_hero", { location: "sticky_mobile" })
         }
       >
-        Testar grátis
+        Quero testar o Performance Copilot
         <ArrowRight size={16} />
       </a>
     </div>

@@ -32,7 +32,7 @@ export function FinalCTA() {
                 trackEvent("start_trial", { location: "final_cta" })
               }
             >
-              TESTAR GRÁTIS
+              QUERO TESTAR O PERFORMANCE COPILOT
               <ArrowRight size={19} />
             </a>
             <p className="text-sm text-ink-secondary">

@@ -63,7 +63,7 @@ export function Header() {
             className="btn-primary !px-5 !py-2.5 !text-sm"
             onClick={() => trackEvent("click_cta_hero", { location: "header" })}
           >
-            Testar grátis
+            Quero testar o Performance Copilot
           </a>
         </div>
 
@@ -108,7 +108,7 @@ export function Header() {
                 setIsMenuOpen(false);
               }}
             >
-              Testar grátis
+              Quero testar o Performance Copilot
             </a>
           </div>
         </div>

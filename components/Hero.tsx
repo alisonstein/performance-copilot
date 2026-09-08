@@ -25,9 +25,9 @@ export function Hero() {
 
           <Reveal delay={0.08}>
             <h1 className="text-balance mt-5 text-[2.35rem] font-semibold leading-[1.12] tracking-tight text-ink sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
-              Pare de analisar campanhas no braço.{" "}
+              Descubra em minutos{" "}
               <span className="bg-gradient-to-r from-primary-light to-accent bg-clip-text text-transparent">
-                Seu copiloto encontra o que você precisa otimizar.
+                o que pausar, escalar e corrigir nas suas campanhas.
               </span>
             </h1>
           </Reveal>
@@ -48,7 +48,7 @@ export function Hero() {
                   trackEvent("click_cta_hero", { location: "hero_primary" })
                 }
               >
-                Testar grátis
+                Quero testar o Performance Copilot
                 <ArrowRight size={17} />
               </a>
               <a href="#como-funciona" className="btn-secondary">
